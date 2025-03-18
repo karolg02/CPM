@@ -1,27 +1,29 @@
 import {RouteObject, useRoutes} from "react-router-dom";
 import {Layout} from "../components/Layout.tsx";
+import {MainPage} from "./mainPage/MainPage.tsx";
+import {Aoa} from "./aoa/Aoa.tsx";
+import {Aon} from "./aon/Aon.tsx";
 
 const routes: RouteObject[] = [
     {
         path: '/',
         element: <Layout/>,
         children: [
-            /*{
-                path: '/offers',
-                element: <OfferList/>
+            {
+                path: '/',
+                element: <MainPage/>
             },
             {
-                path: '/offers/new',
-                element: <OfferForm/>
+                path: '/aoa',
+                element: <Aoa/>
             },
             {
-                path: '/offers/:id',
-                element: <OfferForm/>
-            },
-            {
+                path: '/aon',
+                element: <Aon/>
+            },{
                 path: '*',
-                element: <ErrorPage/>
-            }*/
+                element: <MainPage/>
+            }
         ]
     }
 ]
