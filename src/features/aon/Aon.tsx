@@ -1,4 +1,4 @@
-import {Button, Grid, MultiSelect, NumberInput, TextInput} from "@mantine/core";
+import {Button, Grid, MultiSelect, NumberInput} from "@mantine/core";
 import {useForm} from "@mantine/form";
 import {Network} from "vis-network/standalone/esm/vis-network";
 import {useEffect, useRef, useState} from "react";
@@ -103,14 +103,17 @@ export const Aon = () => {
                 }
             });
         }
+        console.log("reset")
     }, [nodes, edges]);
 
-    const handleReset = () => {
-
-    }
-
     const handleSubmit = (values: typeof form.values) => {
-        const { nazwaCzynnosci, czasTrwania, poprzednie } = values;
+        let { nazwaCzynnosci } = values;
+        const { czasTrwania, poprzednie } = values;
+
+        if (!nazwaCzynnosci.trim()) {
+            nazwaCzynnosci = getNextNodeName();
+        }
+
         const prevNodes = nodes.filter(n => poprzednie.includes(n.label.split("\n")[0]));
         const prevIds = prevNodes.map(n => n.id);
 
@@ -118,9 +121,13 @@ export const Aon = () => {
         const EF = ES + Number(czasTrwania);
 
         if (editNodeId) {
-            setNodes(prevNodes => prevNodes.map(n =>
-                n.id === editNodeId ? { ...n, label: `${nazwaCzynnosci}\nES:${ES} EF:${EF}\nLS:? LF:?`, duration: Number(czasTrwania), ES, EF } : n
-            ));
+            setNodes(prevNodes =>
+                prevNodes.map(n =>
+                    n.id === editNodeId
+                        ? { ...n, label: `${nazwaCzynnosci}\nES:${ES} EF:${EF}\nLS:? LF:?`, duration: Number(czasTrwania), ES, EF }
+                        : n
+                )
+            );
 
             setEdges(prevEdges => [
                 ...prevEdges.filter(e => e.to !== editNodeId),
@@ -147,6 +154,25 @@ export const Aon = () => {
         form.reset();
         setTimeout(() => {
             form.setValues({
+                czasTrwania: 1,
+                poprzednie: []
+            });
+        }, 0);
+    };
+
+    const handleReset = () => {
+        setNodes([
+            { id: 1, label: "START\nES:0 EF:0\nLS:0 LF:0", duration: 0, ES: 0, EF: 0, LS: 0, LF: 0 }
+        ]);
+
+        setEdges([]);
+        setEndAdded(false);
+        setCriticalPath(false);
+        setEditNodeId(null);
+
+        form.reset();
+        setTimeout(() => {
+            form.setValues({
                 nazwaCzynnosci: "",
                 czasTrwania: 1,
                 poprzednie: []
@@ -163,6 +189,20 @@ export const Aon = () => {
         setEditNodeId(null);
     };
 
+    const getNextNodeName = () => {
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const nodeCount = nodes.length;
+
+        let name = "";
+        let index = nodeCount-1;
+
+        while (index >= 0) {
+            name = alphabet[index % 26] + name;
+            index = Math.floor(index / 26) - 1;
+        }
+
+        return name;
+    };
 
     const addEndNode = () => {
         if (endAdded) return;
@@ -240,7 +280,6 @@ export const Aon = () => {
         }
     };
 
-
     return (
         <div style={{ display: "flex" }}>
             <div style={{
@@ -253,7 +292,6 @@ export const Aon = () => {
             }}>
                 <form onSubmit={form.onSubmit(handleSubmit)}
                       style={{display: "flex", flexDirection: "column", gap: "10px"}}>
-                    <TextInput label="Nazwa czynności" {...form.getInputProps("nazwaCzynnosci")} />
                     <NumberInput label="Czas trwania" min={1} {...form.getInputProps("czasTrwania")} />
                     <MultiSelect label="Poprzednie zdarzenia"
                                  data={nodes.map(n => n.label.split("\n")[0])} {...form.getInputProps("poprzednie")} />
