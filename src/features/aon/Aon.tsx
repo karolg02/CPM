@@ -1,4 +1,4 @@
-import {Button, MultiSelect, NumberInput, TextInput} from "@mantine/core";
+import {Button, Grid, MultiSelect, NumberInput, TextInput} from "@mantine/core";
 import {useForm} from "@mantine/form";
 import {Network} from "vis-network/standalone/esm/vis-network";
 import {useEffect, useRef, useState} from "react";
@@ -105,6 +105,9 @@ export const Aon = () => {
         }
     }, [nodes, edges]);
 
+    const handleReset = () => {
+
+    }
 
     const handleSubmit = (values: typeof form.values) => {
         const { nazwaCzynnosci, czasTrwania, poprzednie } = values;
@@ -142,7 +145,24 @@ export const Aon = () => {
         }
 
         form.reset();
+        setTimeout(() => {
+            form.setValues({
+                nazwaCzynnosci: "",
+                czasTrwania: 1,
+                poprzednie: []
+            });
+        }, 0);
     };
+
+    const deleteNode = () => {
+        if (!editNodeId || editNodeId === 1 || (endAdded && editNodeId === nodes.length)) return; // Nie można usunąć START/KONIEC
+
+        setNodes(prevNodes => prevNodes.filter(n => n.id !== editNodeId));
+        setEdges(prevEdges => prevEdges.filter(e => e.from !== editNodeId && e.to !== editNodeId));
+
+        setEditNodeId(null);
+    };
+
 
     const addEndNode = () => {
         if (endAdded) return;
@@ -197,32 +217,77 @@ export const Aon = () => {
         setNodes(updatedNodes);
     };
 
-    const highlightCriticalPath = () => {
-        setCriticalPath(true);
-        setEdges(prevEdges =>
-            prevEdges.map(e => {
-                const fromNode = nodes.find(n => n.id === e.from);
-                const toNode = nodes.find(n => n.id === e.to);
-                return (fromNode && toNode && fromNode.ES === fromNode.LS && toNode.ES === toNode.LS)
-                    ? { ...e, color: "red" }
-                    : { ...e, color: "black" };
-            })
-        );
+    const toggleCriticalPath = () => {
+        if (criticalPath) {
+            setEdges(prevEdges =>
+                prevEdges.map(e => ({
+                    ...e,
+                    color: "black"
+                }))
+            );
+            setCriticalPath(false);
+        } else {
+            setEdges(prevEdges =>
+                prevEdges.map(e => {
+                    const fromNode = nodes.find(n => n.id === e.from);
+                    const toNode = nodes.find(n => n.id === e.to);
+                    return fromNode && toNode && fromNode.ES === fromNode.LS && toNode.ES === toNode.LS
+                        ? { ...e, color: "red" }
+                        : { ...e, color: "black" };
+                })
+            );
+            setCriticalPath(true);
+        }
     };
+
 
     return (
         <div style={{ display: "flex" }}>
-            <div style={{ width: "30%", padding: "10px", borderRight: "1px solid black" }}>
-                <form onSubmit={form.onSubmit(handleSubmit)}>
+            <div style={{
+                width: "30%",
+                padding: "20px",
+                borderRight: "2px solid black",
+                display: "flex",
+                flexDirection: "column",
+                gap: "15px"
+            }}>
+                <form onSubmit={form.onSubmit(handleSubmit)}
+                      style={{display: "flex", flexDirection: "column", gap: "10px"}}>
                     <TextInput label="Nazwa czynności" {...form.getInputProps("nazwaCzynnosci")} />
                     <NumberInput label="Czas trwania" min={1} {...form.getInputProps("czasTrwania")} />
-                    <MultiSelect label="Poprzednie zdarzenia" data={nodes.map(n => n.label.split("\n")[0])} {...form.getInputProps("poprzednie")} />
-                    <Button type="submit">{editNodeId ? "Zaktualizuj" : "Dodaj"}</Button>
+                    <MultiSelect label="Poprzednie zdarzenia"
+                                 data={nodes.map(n => n.label.split("\n")[0])} {...form.getInputProps("poprzednie")} />
+                    <Grid m="10px" justify="space-between">
+                        <Button type="submit" w="49%">{editNodeId ? "Zaktualizuj" : "Dodaj wezeł"}</Button>
+                        <Button w="49%" onClick={addEndNode} disabled={endAdded}
+                                style={{backgroundColor: "#007bff", color: "white"}}>Dodaj KONIEC</Button>
+                    </Grid>
+
+                    <Button
+                        onClick={toggleCriticalPath}
+                        disabled={!endAdded}
+                        style={{
+                            backgroundColor: criticalPath ? "#6c757d" : "#dc3545",
+                            color: "white"
+                        }}
+                    >
+                        {criticalPath ? "Ukryj ścieżkę krytyczną" : "Pokaż ścieżkę krytyczną"}
+                    </Button>
+
+                    <Grid m="10px" justify="space-between">
+                        <Button
+                            onClick={deleteNode}
+                            disabled={!editNodeId || editNodeId === 1 || (endAdded && editNodeId === nodes.length)}
+                            style={{backgroundColor: "#ff0000", color: "white"}} w="49%"
+                        >
+                            Usuń węzeł
+                        </Button>
+                        <Button w="49%" onClick={handleReset}
+                        >Reset</Button>
+                    </Grid>
                 </form>
-                <Button onClick={addEndNode} disabled={endAdded}>Dodaj KONIEC</Button>
-                <Button onClick={highlightCriticalPath} disabled={criticalPath}>Pokaż ścieżkę krytyczną</Button>
             </div>
-            <div ref={networkRef} style={{ width: "70%", height: "100vh" }} />
+            <div ref={networkRef} style={{width: "70%", height: "100vh"}}/>
         </div>
     );
 };
