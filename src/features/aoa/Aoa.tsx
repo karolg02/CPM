@@ -10,6 +10,7 @@ type Node = {
 };
 
 type Edge = {
+    name: string;
     id: number;
     from: number;
     to: number;
@@ -35,6 +36,18 @@ export const Aoa = () => {
             nastpene: 2
 
         },
+        validate: {
+            nazwaCzynnosci: (value) => {
+                const isNameUsed = edges.some(edge => edge.name === value);
+                return isNameUsed ? 'Nazwa czynności musi być unikalna względem edge.name' : null;
+            },
+            poprzednie: (value, values) => {
+                return value === values.nastpene ? 'Poprzednie i następne nie mogą być takie same' : null;
+            },
+            nastpene: (value, values) => {
+                return value === values.poprzednie ? 'Poprzednie i następne nie mogą być takie same' : null;
+            }
+        }
     });
 
     useEffect(() => {
@@ -74,12 +87,16 @@ export const Aoa = () => {
             id: edges.length + 1,
             from: data.poprzednie,
             to: data.nastpene,
+            name:data.nazwaCzynnosci,
             label: data.nazwaCzynnosci + "  " + data.czasTrwania
         }
 
         setEdges((prevEdges) => [...prevEdges, newEdge]);
 
         form.reset()
+    }
+    const deleteEdge=(edgeId:number)=>{
+        setEdges(edges.filter(object => object.id !== edgeId))
     }
     return (
         <div className="container">
@@ -129,7 +146,14 @@ export const Aoa = () => {
                     </form>
                 </div>
                 <div className="table">
+                    {edges.map((item)=>
+                        (
+                            <div>
+                                {item.label} {item.from} {item.to}
+                                <div onClick={()=>{deleteEdge(item.id)}}>usun</div>
+                            </div>
 
+                        ))}
                 </div>
 
             </div>

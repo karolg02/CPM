@@ -21,8 +21,9 @@
 .table {
     padding: 10px;
     width: 100%;
-    background-color: black;
+    background-color: #510312;
     height: 50vh;
+    color: white;
 }
 
 .graph {
