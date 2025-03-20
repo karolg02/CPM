@@ -29,6 +29,7 @@ export const Aon = () => {
     const [editNodeId, setEditNodeId] = useState<number | null>(null);
     const networkRef = useRef<HTMLDivElement>(null);
     const networkInstance = useRef<Network | null>(null);
+    const [formKey, setFormKey] = useState(0);
 
     const form = useForm({
         mode: "uncontrolled",
@@ -103,7 +104,6 @@ export const Aon = () => {
                 }
             });
         }
-        console.log("reset")
     }, [nodes, edges]);
 
     const handleSubmit = (values: typeof form.values) => {
@@ -139,7 +139,7 @@ export const Aon = () => {
             const nodeId = nodes.length + 1;
             const newNode: Node = {
                 id: nodeId,
-                label: `${nazwaCzynnosci}\nES:${ES} EF:${EF}\nLS:? LF:?`,
+                label: `${nazwaCzynnosci}\nES:${ES} T:${czasTrwania} EF:${EF}\nLS:? D:? LF:?`,
                 duration: Number(czasTrwania),
                 ES,
                 EF,
@@ -151,13 +151,13 @@ export const Aon = () => {
             setEdges(prevEdges => [...prevEdges, ...prevIds.map(prevId => ({ from: prevId, to: nodeId }))]);
         }
 
-        form.reset();
-        setTimeout(() => {
-            form.setValues({
-                czasTrwania: 1,
-                poprzednie: []
-            });
-        }, 0);
+        form.setValues({
+            nazwaCzynnosci: "",
+            czasTrwania: 1,
+            poprzednie: []
+        });
+
+        setFormKey(prev => prev + 1);
     };
 
     const handleReset = () => {
@@ -170,14 +170,13 @@ export const Aon = () => {
         setCriticalPath(false);
         setEditNodeId(null);
 
-        form.reset();
-        setTimeout(() => {
-            form.setValues({
-                nazwaCzynnosci: "",
-                czasTrwania: 1,
-                poprzednie: []
-            });
-        }, 0);
+        form.setValues({
+            nazwaCzynnosci: "",
+            czasTrwania: 1,
+            poprzednie: []
+        });
+
+        setFormKey(prev => prev + 1);
     };
 
     const deleteNode = () => {
@@ -251,7 +250,7 @@ export const Aon = () => {
                 }
             }
 
-            node.label = `${node.label.split("\n")[0]}\nES:${node.ES} EF:${node.EF}\nLS:${node.LS} LF:${node.LF}`;
+            node.label = `${node.label.split("\n")[0]}\nES:${node.ES} T:${node.duration} EF:${node.EF}\nLS:${node.LS} D:${node.ES-node.LS} LF:${node.LF}`;
         }
 
         setNodes(updatedNodes);
@@ -290,7 +289,7 @@ export const Aon = () => {
                 flexDirection: "column",
                 gap: "15px"
             }}>
-                <form onSubmit={form.onSubmit(handleSubmit)}
+                <form onSubmit={form.onSubmit(handleSubmit)} key={formKey}
                       style={{display: "flex", flexDirection: "column", gap: "10px"}}>
                     <NumberInput label="Czas trwania" min={1} {...form.getInputProps("czasTrwania")} />
                     <MultiSelect label="Poprzednie zdarzenia"
