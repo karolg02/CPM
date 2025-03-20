@@ -33,7 +33,6 @@ export const Aon = () => {
     const networkInstance = useRef<Network | null>(null);
     const [formKey, setFormKey] = useState(0);
     const navigate = useNavigate();
-    const [chartVisible, setchartVisible] = useState<boolean>(true);
 
     const form = useForm({
         mode: "uncontrolled",
@@ -108,7 +107,7 @@ export const Aon = () => {
                 }
             });
         }
-    }, [nodes, edges, chartVisible]);
+    }, [nodes, edges]);
 
     const handleSubmit = (values: typeof form.values) => {
         let { nazwaCzynnosci } = values;
@@ -173,7 +172,6 @@ export const Aon = () => {
         setEndAdded(false);
         setCriticalPath(false);
         setEditNodeId(null);
-        setchartVisible(true);
 
         form.setValues({
             nazwaCzynnosci: "",
@@ -244,18 +242,21 @@ export const Aon = () => {
                 node.LF = node.EF;
                 node.LS = node.ES;
             } else {
-                const successors = allEdges.filter(e => e.from === node.id).map(e => updatedNodes.find(n => n.id === e.to));
+                const successors = allEdges
+                    .filter(e => e.from === node.id)
+                    .map(e => updatedNodes.find(n => n.id === e.to))
+                    .filter((n): n is Node => n !== undefined);
 
                 if (successors.length > 0) {
                     node.LF = Math.min(...successors.map(n => n!.LS));
                     node.LS = node.LF - node.duration;
                 } else {
-                    node.LF = node.EF;
-                    node.LS = node.ES;
+                    node.LF = Math.max(...updatedNodes.map(n => n.EF), 0);
+                    node.LS = node.LF - node.duration;
                 }
             }
 
-            node.label = `${node.label.split("\n")[0]}\nES:${node.ES} T:${node.duration} EF:${node.EF}\nLS:${node.LS} D:${node.ES-node.LS} LF:${node.LF}`;
+            node.label = `${node.label.split("\n")[0]}\nES:${node.ES} T:${node.duration} EF:${node.EF}\nLS:${node.LS} D:${node.EF-node.LF} LF:${node.LF}`;
         }
 
         setNodes(updatedNodes);
@@ -285,8 +286,7 @@ export const Aon = () => {
     };
 
     const showChart = () => {
-        if(!chartVisible) setchartVisible(true);
-        else setchartVisible(false);
+
     }
 
     return (
@@ -339,11 +339,9 @@ export const Aon = () => {
                     </Grid>
                 </form>
             </div>
-            {chartVisible ? (
-                <div ref={networkRef} style={{ width: "70%", height: "100vh" }} />
-            ) : (
-                <div style={{width: "70%", height: "100vh"}}>tu będzie graf</div>
-            )}
+
+            <div ref={networkRef} style={{ width: "70%", height: "100vh" }}/>
+
             <Button pos="fixed" bottom="10px" left="10px" onClick={() => navigate("/")}
             >
                 <IconArrowBackUp/>
