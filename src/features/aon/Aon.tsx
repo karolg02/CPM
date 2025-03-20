@@ -2,6 +2,8 @@ import {Button, Grid, MultiSelect, NumberInput} from "@mantine/core";
 import {useForm} from "@mantine/form";
 import {Network} from "vis-network/standalone/esm/vis-network";
 import {useEffect, useRef, useState} from "react";
+import {IconArrowBackUp, IconRefresh} from "@tabler/icons-react";
+import {useNavigate} from "react-router-dom";
 
 type Node = {
     id: number;
@@ -30,6 +32,8 @@ export const Aon = () => {
     const networkRef = useRef<HTMLDivElement>(null);
     const networkInstance = useRef<Network | null>(null);
     const [formKey, setFormKey] = useState(0);
+    const navigate = useNavigate();
+    const [chartVisible, setchartVisible] = useState<boolean>(true);
 
     const form = useForm({
         mode: "uncontrolled",
@@ -104,7 +108,7 @@ export const Aon = () => {
                 }
             });
         }
-    }, [nodes, edges]);
+    }, [nodes, edges, chartVisible]);
 
     const handleSubmit = (values: typeof form.values) => {
         let { nazwaCzynnosci } = values;
@@ -169,6 +173,7 @@ export const Aon = () => {
         setEndAdded(false);
         setCriticalPath(false);
         setEditNodeId(null);
+        setchartVisible(true);
 
         form.setValues({
             nazwaCzynnosci: "",
@@ -180,7 +185,7 @@ export const Aon = () => {
     };
 
     const deleteNode = () => {
-        if (!editNodeId || editNodeId === 1 || (endAdded && editNodeId === nodes.length)) return; // Nie można usunąć START/KONIEC
+        if (!editNodeId || editNodeId === 1 || (endAdded && editNodeId === nodes.length)) return;
 
         setNodes(prevNodes => prevNodes.filter(n => n.id !== editNodeId));
         setEdges(prevEdges => prevEdges.filter(e => e.from !== editNodeId && e.to !== editNodeId));
@@ -279,12 +284,17 @@ export const Aon = () => {
         }
     };
 
+    const showChart = () => {
+        if(!chartVisible) setchartVisible(true);
+        else setchartVisible(false);
+    }
+
     return (
-        <div style={{ display: "flex" }}>
+        <div style={{display: "flex"}}>
             <div style={{
                 width: "30%",
                 padding: "20px",
-                borderRight: "2px solid black",
+                borderRight: "1px solid black",
                 display: "flex",
                 flexDirection: "column",
                 gap: "15px"
@@ -311,6 +321,11 @@ export const Aon = () => {
                         {criticalPath ? "Ukryj ścieżkę krytyczną" : "Pokaż ścieżkę krytyczną"}
                     </Button>
 
+                    <Button onClick={showChart}
+                    >
+                        Pokaż Gantt Chart
+                    </Button>
+
                     <Grid m="10px" justify="space-between">
                         <Button
                             onClick={deleteNode}
@@ -320,11 +335,19 @@ export const Aon = () => {
                             Usuń węzeł
                         </Button>
                         <Button w="49%" onClick={handleReset}
-                        >Reset</Button>
+                        ><IconRefresh/></Button>
                     </Grid>
                 </form>
             </div>
-            <div ref={networkRef} style={{width: "70%", height: "100vh"}}/>
+            {chartVisible ? (
+                <div ref={networkRef} style={{ width: "70%", height: "100vh" }} />
+            ) : (
+                <div style={{width: "70%", height: "100vh"}}>tu będzie graf</div>
+            )}
+            <Button pos="fixed" bottom="10px" left="10px" onClick={() => navigate("/")}
+            >
+                <IconArrowBackUp/>
+            </Button>
         </div>
     );
 };
