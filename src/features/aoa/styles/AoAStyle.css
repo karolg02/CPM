@@ -9,26 +9,36 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    border-right: 1px solid black;
 }
 
 .form {
     padding: 10px;
     width: 100%;
-    background-color: grey;
     height: 50vh;
 }
 
-.table {
-    padding: 10px;
+.table-container {
     width: 100%;
-    background-color: #510312;
-    height: 50vh;
-    color: white;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse; /* Usuwa podwójne linie między komórkami */
+}
+
+th, td {
+    border: 1px solid black; /* Dodaje czarne obramowanie do nagłówków i komórek */
+    padding: 8px; /* Dodaje padding do komórek dla lepszej czytelności */
+    text-align: left; /* Wyrównanie tekstu do lewej */
+}
+
+button {
+    cursor: pointer; /* Dodaje kursor wskazujący, że przycisk jest interaktywny */
 }
 
 .graph {
     padding: 10px;
     width: 75%;
-    background-color: blue;
     height: 100vh;
 }

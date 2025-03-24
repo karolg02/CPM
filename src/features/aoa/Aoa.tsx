@@ -7,6 +7,10 @@ import {useEffect, useRef, useState} from "react";
 type Node = {
     id: number;
     label: string;
+
+    ES?: number;
+    LS?:number;
+
 };
 
 type Edge = {
@@ -15,6 +19,8 @@ type Edge = {
     from: number;
     to: number;
     label: string
+    duration: number;
+    color: { color:string };
 };
 type formData = {
     nazwaCzynnosci: string,
@@ -66,7 +72,6 @@ export const Aoa = () => {
         }
     }, [nodes, edges]);
     const handleForm = (data: formData) => {
-         console.log(data)
 
         if(!nodes.some(item => item.id === data.poprzednie)) {
             const newNode: Node = {
@@ -84,10 +89,12 @@ export const Aoa = () => {
         }
 
         const newEdge: Edge = {
+            color:{color:"black"},
             id: edges.length + 1,
             from: data.poprzednie,
             to: data.nastpene,
             name:data.nazwaCzynnosci,
+            duration:data.czasTrwania,
             label: data.nazwaCzynnosci + "  " + data.czasTrwania
         }
 
@@ -97,6 +104,63 @@ export const Aoa = () => {
     }
     const deleteEdge=(edgeId:number)=>{
         setEdges(edges.filter(object => object.id !== edgeId))
+    }
+    const calculateCPM=()=>{
+        console.log("CPM")
+        const updatedNodes = [...nodes];
+        const updatedEdges = [...edges];
+
+        // Inicjalizacja ES dla wszystkich węzłów jako 0
+        updatedNodes.forEach(node => node.ES = 0);
+
+        let updated = true;
+        while (updated) {
+            updated = false;
+            updatedEdges.forEach(edge => {
+                const fromNode = updatedNodes.find(node => node.id === edge.from);
+                const toNode = updatedNodes.find(node => node.id === edge.to);
+                if (toNode && fromNode && (toNode.ES! < fromNode.ES! + edge.duration)) {
+                    toNode.ES = fromNode.ES! + edge.duration;
+                    updated = true;
+                }
+            });
+        }
+
+       // Inicjalizacja LS na maksymalny ES jako wartość początkową LS dla węzłów bez wychodzących krawędzi
+        updatedNodes.forEach(node => {
+            node.LS = Math.max(...updatedNodes.map(n => n.ES!));
+        });
+
+        // Obliczanie LS
+        updated = true;
+        while (updated) {
+            updated = false;
+            updatedEdges.forEach(edge => {
+                const fromNode = updatedNodes.find(node => node.id === edge.from);
+                const toNode = updatedNodes.find(node => node.id === edge.to);
+                if (fromNode && toNode && (fromNode.LS! > toNode.LS! - edge.duration)) {
+                    fromNode.LS = toNode.LS! - edge.duration;
+                    updated = true;
+                }
+
+            });
+        }
+        updatedEdges.forEach(edge => {
+            const fromNode = updatedNodes.find(node => node.id === edge.from);
+            const toNode = updatedNodes.find(node => node.id === edge.to);
+            if (fromNode && toNode && (fromNode.LS! - fromNode.ES! === 0) && (toNode.LS! - toNode.ES! === 0) && fromNode.ES! + edge.duration   === toNode.ES) {
+                edge.color = { color: "red" }; // Oznaczanie krawędzi jako czerwonej
+            }else {
+                edge.color = { color: "black" };
+            }
+        });
+        updatedNodes.forEach(node => {
+            node.label=node.id+"\n"+node.ES+"   "+node.LS +"\n"+(node.LS! - node.ES!);
+        })
+        setEdges(updatedEdges);
+        setNodes(updatedNodes);
+        console.log(nodes,edges)
+
     }
     return (
         <div className="container">
@@ -108,7 +172,6 @@ export const Aoa = () => {
                         handleForm(values);
                     })}>
                         <TextInput
-
                             label="Nazwa czynnosci"
                             placeholder="A"
                             key={form.key('nazwaCzynnosci')}
@@ -116,7 +179,6 @@ export const Aoa = () => {
                         />
                         <NumberInput
                             label="Czas trwania czynności"
-                            //   description="Czas trwania czynności"
                             placeholder="1"
                             min={1}
                             key={form.key('czasTrwania')}
@@ -124,7 +186,6 @@ export const Aoa = () => {
                         />
                         <NumberInput
                             label="Poprzednie zdarzenie"
-                            //  description="Poprzednie zdarzenie"
                             placeholder="1"
                             min={1}
                             key={form.key('poprzednie')}
@@ -132,7 +193,6 @@ export const Aoa = () => {
                         />
                         <NumberInput
                             label="Nastepne zdarzenie"
-                            //    description="Nastepne zdarzenie"
                             placeholder="1"
                             min={1}
                             key={form.key('nastpene')}
@@ -144,23 +204,38 @@ export const Aoa = () => {
                             <Button type="submit">Submit</Button>
                         </Group>
                     </form>
+                    <button onClick={calculateCPM}>Oblicz CPM</button>
                 </div>
-                <div className="table">
-                    {edges.map((item)=>
-                        (
-                            <div>
-                                {item.label} {item.from} {item.to}
-                                <div onClick={()=>{deleteEdge(item.id)}}>usun</div>
-                            </div>
-
+                <div className="table-container">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Nazwa czynnosci</th>
+                            <th>czas trwania</th>
+                            <th>nastepstwo zdarzen</th>
+                            <th>usun</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {edges.map((item) => (
+                            <tr key={item.id}>
+                                <td>{item.name}</td>
+                                <td>{item.duration}</td>
+                                <td>{item.from}-{item.to}</td>
+                                <td>
+                                    <button onClick={() => deleteEdge(item.id)}>Usuń</button>
+                                </td>
+                            </tr>
                         ))}
+                        </tbody>
+                    </table>
                 </div>
 
+
             </div>
 
-            <div id={'graph'} className="graph">
-                <div ref={networkRef} style={{height: '500px'}}/>
-            </div>
+            <div ref={networkRef} id={'graph'} className="graph"/>
+
         </div>
     )
 }
