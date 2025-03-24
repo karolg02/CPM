@@ -276,14 +276,23 @@ export const Aon = () => {
                 prevEdges.map(e => {
                     const fromNode = nodes.find(n => n.id === e.from);
                     const toNode = nodes.find(n => n.id === e.to);
-                    return fromNode && toNode && fromNode.ES === fromNode.LS && toNode.ES === toNode.LS
-                        ? { ...e, color: "red" }
-                        : { ...e, color: "black" };
+                    const isCritical =
+                        fromNode &&
+                        toNode &&
+                        fromNode.ES === fromNode.LS &&
+                        toNode.ES === toNode.LS &&
+                        fromNode.EF === toNode.ES;
+
+                    return {
+                        ...e,
+                        color: isCritical ? "red" : "black"
+                    };
                 })
             );
             setCriticalPath(true);
         }
     };
+
 
     const showChart = () => {
 
