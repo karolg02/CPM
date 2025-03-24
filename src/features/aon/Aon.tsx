@@ -1,9 +1,10 @@
-import {Button, Grid, MultiSelect, NumberInput} from "@mantine/core";
+import {Button, Grid, Modal, MultiSelect, NumberInput} from "@mantine/core";
 import {useForm} from "@mantine/form";
 import {Network} from "vis-network/standalone/esm/vis-network";
 import {useEffect, useRef, useState} from "react";
 import {IconArrowBackUp, IconRefresh} from "@tabler/icons-react";
 import {useNavigate} from "react-router-dom";
+import {GanttChart} from "./GanttChart.tsx";
 
 type Node = {
     id: number;
@@ -33,6 +34,7 @@ export const Aon = () => {
     const networkInstance = useRef<Network | null>(null);
     const [formKey, setFormKey] = useState(0);
     const navigate = useNavigate();
+    const [showGantt, setShowGantt] = useState(false);
 
     const form = useForm({
         mode: "uncontrolled",
@@ -295,7 +297,7 @@ export const Aon = () => {
 
 
     const showChart = () => {
-
+        setShowGantt(true);
     }
 
     return (
@@ -334,7 +336,6 @@ export const Aon = () => {
                     >
                         Pokaż Gantt Chart
                     </Button>
-
                     <Grid m="10px" justify="space-between">
                         <Button
                             onClick={deleteNode}
@@ -355,6 +356,25 @@ export const Aon = () => {
             >
                 <IconArrowBackUp/>
             </Button>
+
+            <Modal
+                opened={showGantt}
+                onClose={() => setShowGantt(false)}
+                title="Wykres Gantta"
+                size="xl"
+                centered
+            >
+                <GanttChart data={nodes
+                    .filter(n => n.label.split("\n")[0] !== "START" && !n.label.startsWith("KONIEC"))
+                    .map(n => ({
+                        name: n.label.split("\n")[0],
+                        start: n.ES,
+                        duration: n.duration,
+                        isCritical: n.ES === n.LS
+                    }))
+                }/>
+            </Modal>
+
         </div>
     );
 };
