@@ -8,13 +8,11 @@ const theme = createTheme({})
 function App() {
     return (
         <MantineProvider theme={theme}>
-            <div className="container">
 
                 <BrowserRouter>
                  <Routing />
                 </BrowserRouter>
 
-            </div>
         </MantineProvider>
     )
 }
