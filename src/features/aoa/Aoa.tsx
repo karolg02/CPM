@@ -110,7 +110,6 @@ export const Aoa = () => {
         const updatedNodes = [...nodes];
         const updatedEdges = [...edges];
 
-        // Inicjalizacja ES dla wszystkich węzłów jako 0
         updatedNodes.forEach(node => node.ES = 0);
 
         let updated = true;
@@ -126,12 +125,10 @@ export const Aoa = () => {
             });
         }
 
-       // Inicjalizacja LS na maksymalny ES jako wartość początkową LS dla węzłów bez wychodzących krawędzi
         updatedNodes.forEach(node => {
             node.LS = Math.max(...updatedNodes.map(n => n.ES!));
         });
 
-        // Obliczanie LS
         updated = true;
         while (updated) {
             updated = false;
