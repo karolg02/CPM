@@ -24,17 +24,17 @@
 
 table {
     width: 100%;
-    border-collapse: collapse; /* Usuwa podwójne linie między komórkami */
+    border-collapse: collapse;
 }
 
 th, td {
-    border: 1px solid black; /* Dodaje czarne obramowanie do nagłówków i komórek */
-    padding: 8px; /* Dodaje padding do komórek dla lepszej czytelności */
-    text-align: left; /* Wyrównanie tekstu do lewej */
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
 }
 
 button {
-    cursor: pointer; /* Dodaje kursor wskazujący, że przycisk jest interaktywny */
+    cursor: pointer;
 }
 
 .graph {
