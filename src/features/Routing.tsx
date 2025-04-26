@@ -3,6 +3,7 @@ import {Layout} from "../components/Layout.tsx";
 import {MainPage} from "./mainPage/MainPage.tsx";
 import {Aoa} from "./aoa/Aoa.tsx";
 import {Aon} from "./aon/Aon.tsx";
+import { Intermediary } from "./intermediary/Intermediary.tsx";
 
 const routes: RouteObject[] = [
     {
@@ -20,7 +21,12 @@ const routes: RouteObject[] = [
             {
                 path: '/aon',
                 element: <Aon/>
-            },{
+            },
+            {
+                path: '/intermediary',
+                element: <Intermediary/>
+            },
+            {
                 path: '*',
                 element: <MainPage/>
             }

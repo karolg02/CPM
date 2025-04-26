@@ -5,9 +5,10 @@ export const MainPage = () => {
     const navigate = useNavigate();
     return(
         <>
-            <div className="container">
+            <div className="container2">
             <Button onClick={() => navigate('/aoa')} variant="filled">Aoa</Button>
             <Button onClick={() => navigate('/aon')} variant="filled">Aon</Button>
+            <Button onClick={() => navigate('/intermediary')} variant="filled">Intermediary</Button>
             </div>
         </>
     )

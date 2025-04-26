@@ -1,7 +1,20 @@
 .container {
-
+    justify-content: center;
+}
+.container2{
     margin: 100px;
     justify-content: center;
-
-
+    display:grid;
+    height: 200px;
+}
+.add-customer-th {
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    background-color: white;
+    transition: background-color 0.2s ease;
+  }
+  
+.add-customer-th:hover {
+    background-color: #d3f9d8;
 }

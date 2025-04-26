@@ -3,6 +3,8 @@ import {useForm} from "@mantine/form";
 import "./styles/AoAStyle.css";
 import {Network} from 'vis-network/standalone/esm/vis-network';
 import {useEffect, useRef, useState} from "react";
+import { IconArrowBackUp } from "@tabler/icons-react";
+import { useNavigate } from "react-router-dom";
 
 type Node = {
     id: number;
@@ -33,6 +35,7 @@ export const Aoa = () => {
     const [edges, setEdges] = useState<Edge[]>([]);
     const networkRef = useRef<HTMLDivElement>(null);
     const networkInstance = useRef<Network | null>(null);
+    const navigate = useNavigate();
     const form = useForm({
         mode: 'uncontrolled',
         initialValues: {
@@ -161,6 +164,10 @@ export const Aoa = () => {
     }
     return (
         <div className="container">
+            <Button pos="fixed" bottom="10px" left="10px" onClick={() => navigate("/")}
+            >
+                <IconArrowBackUp/>
+            </Button>
 
             <div className="leftSide">
 
