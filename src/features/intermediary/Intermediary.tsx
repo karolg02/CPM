@@ -330,7 +330,7 @@ export const Intermediary = () => {
             }
         }
 
-        const potentialPath = calculatePotentialPath(profitGrid, calData.supply, calData.demand);
+        const potentialPath = calculateFirstPath(profitGrid, calData.supply, calData.demand);
 
         const solution: TransportSolution = {
             allocation: potentialPath,
@@ -560,38 +560,36 @@ export const Intermediary = () => {
         return { alpha, beta };
     };
 
-    const calculatePotentialPath = (unitProfitMatrix: number[][], supply: number[], demand: number[]) => {
+    const calculateFirstPath = (unitProfitMatrix: number[][], supply: number[], demand: number[]) => {
+        const allocation = unitProfitMatrix.map(row => row.map(() => 0));
         const remainingSupply = [...supply];
         const remainingDemand = [...demand];
-        const allocation: number[][] = Array.from({ length: supply.length }, () =>
-            new Array(demand.length).fill(0)
-        );
 
-        function findMaxProfit() {
-            let max = -Infinity;
-            let row = -1;
-            let col = -1;
+        while (true) {
+            let bestRow = -1;
+            let bestCol = -1;
+            let bestProfit = -Infinity;
 
             for (let i = 0; i < unitProfitMatrix.length; i++) {
                 for (let j = 0; j < unitProfitMatrix[i].length; j++) {
-                    if (remainingSupply[i] > 0 && remainingDemand[j] > 0 && unitProfitMatrix[i][j] > max) {
-                        max = unitProfitMatrix[i][j];
-                        row = i;
-                        col = j;
+                    if (remainingSupply[i] > 0 && remainingDemand[j] > 0) {
+                        if (unitProfitMatrix[i][j] > bestProfit) {
+                            bestProfit = unitProfitMatrix[i][j];
+                            bestRow = i;
+                            bestCol = j;
+                        }
                     }
                 }
             }
 
-            return { row, col };
-        }
+            if (bestRow === -1 || bestCol === -1) {
+                break;
+            }
 
-        while (true) {
-            const { row, col } = findMaxProfit();
-            if (row === -1 || col === -1) break;
-            const amount = Math.min(remainingSupply[row], remainingDemand[col]);
-            allocation[row][col] = amount;
-            remainingSupply[row] -= amount;
-            remainingDemand[col] -= amount;
+            const amount = Math.min(remainingSupply[bestRow], remainingDemand[bestCol]);
+            allocation[bestRow][bestCol] = amount;
+            remainingSupply[bestRow] -= amount;
+            remainingDemand[bestCol] -= amount;
         }
 
         return allocation;
