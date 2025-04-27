@@ -69,7 +69,7 @@ interface SolutionResults {
 export const Intermediary = () => {
     const navigate = useNavigate();
 
-    // Inicjalizacja danych
+
     const [data, setData] = useState<TransportProblemData>({
         suppliers: [
             {
@@ -109,7 +109,7 @@ export const Intermediary = () => {
 
     const [results, setResults] = useState<SolutionResults>({});
 
-    // Walidacja pojedynczego odbiorcy
+
     const validateCustomer = (customer: CustomerData): CustomerData => {
         const errors: {
             name?: string;
@@ -135,7 +135,7 @@ export const Intermediary = () => {
         };
     };
 
-    // Walidacja pojedynczego dostawcy
+
     const validateSupplier = (supplier: SupplierData, customers: CustomerData[]): SupplierData => {
         const errors: {
             name?: string;
@@ -174,7 +174,7 @@ export const Intermediary = () => {
         };
     };
 
-    // Walidacja całego modelu
+
     const validateModel = (model: TransportProblemData): TransportProblemData => {
         const validatedCustomers = model.customers.map(validateCustomer);
         const validatedSuppliers = model.suppliers.map(supplier =>
@@ -192,7 +192,7 @@ export const Intermediary = () => {
         };
     };
 
-    // Dodawanie nowego dostawcy
+
     const addSupplier = () => {
         const newId = Math.max(...data.suppliers.map(s => s.id), 0) + 1;
         const newSupplier: SupplierData = {
@@ -212,7 +212,6 @@ export const Intermediary = () => {
         }));
     };
 
-    // Usuwanie dostawcy
     const removeSupplier = (id: number) => {
         if (data.suppliers.length <= 1) return;
         setData(validateModel({
@@ -221,7 +220,6 @@ export const Intermediary = () => {
         }));
     };
 
-    // Dodawanie nowego odbiorcy
     const addCustomer = () => {
         const newCustomer: CustomerData = {
             name: `Odbiorca ${data.customers.length + 1}`,
@@ -243,7 +241,6 @@ export const Intermediary = () => {
         setData(validateModel(newData));
     };
 
-    // Usuwanie odbiorcy
     const removeCustomer = (name: string) => {
         if (data.customers.length <= 1) return;
 
@@ -262,7 +259,6 @@ export const Intermediary = () => {
         setData(validateModel(newData));
     };
 
-    // Aktualizacja danych dostawcy
     const updateSupplier = (id: number, field: keyof SupplierData, value: string | number) => {
         const newData = {
             ...data,
@@ -273,7 +269,6 @@ export const Intermediary = () => {
         setData(validateModel(newData));
     };
 
-    // Aktualizacja danych odbiorcy
     const updateCustomer = (index: number, field: keyof CustomerData, value: string | number) => {
         const newCustomers = [...data.customers];
         newCustomers[index] = { ...newCustomers[index], [field]: value };
@@ -285,7 +280,6 @@ export const Intermediary = () => {
         setData(validateModel(newData));
     };
 
-    // Aktualizacja kosztów transportu
     const updateTransportCost = (supplierId: number, customerName: string, value: number) => {
         const newData = {
             ...data,
@@ -307,10 +301,8 @@ export const Intermediary = () => {
 
     const solveTransportProblem = () => {
 
-
         const calData = proccesDataForCalculating(data);
         const profitGrid = calculateProfitGrid(calData.transportCostsMatrix, calData.purchaseCosts, calData.sellingPrices);
-
 
         let totalBuyerDemand = 0;
         for (let i = 0; i < calData.demand.length; i++) {
@@ -330,10 +322,10 @@ export const Intermediary = () => {
             }
         }
 
-        const potentialPath = calculateFirstPath(profitGrid, calData.supply, calData.demand);
+        const firstPath = calculateFirstPath(profitGrid, calData.supply, calData.demand);
 
         const solution: TransportSolution = {
-            allocation: potentialPath,
+            allocation: firstPath,
             profits: profitGrid,
             supply: calData.supply,
             demand: calData.demand,
@@ -528,34 +520,35 @@ export const Intermediary = () => {
 
     const calculateDualVariables = (solution: TransportSolution) => {
         const { allocation, profits } = solution;
-        const numSuppliers = allocation.length;
-        const numCustomers = allocation[0].length;
+        const rows = allocation.length;
+        const cols = allocation[0].length;
 
-        const alpha: number[] = new Array(numSuppliers).fill(null);
-        const beta: number[] = new Array(numCustomers).fill(null);
+        const alpha = Array(rows).fill(null);
+        const beta = Array(cols).fill(null);
 
-        // Ustawienie wartości dla fikcyjnych dostawców/odbiorców
-        alpha[numSuppliers - 1] = 0;
-        beta[numCustomers - 1] = 0;
+        // Fikcyjny dostawca i odbiorca dostają 0
+        alpha[rows - 1] = 0;
+        beta[cols - 1] = 0;
 
-        // Iteracyjne rozwiązywanie równań
-        let changed: boolean;
-        do {
-            changed = false;
-            allocation.forEach((row, i) => {
-                row.forEach((alloc, j) => {
-                    if (alloc > 0) {
+        let updated = true;
+
+        while (updated) {
+            updated = false;
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    if (allocation[i][j] > 0) {
                         if (alpha[i] !== null && beta[j] === null) {
                             beta[j] = profits[i][j] - alpha[i];
-                            changed = true;
-                        } else if (alpha[i] === null && beta[j] !== null) {
+                            updated = true;
+                        } else if (beta[j] !== null && alpha[i] === null) {
                             alpha[i] = profits[i][j] - beta[j];
-                            changed = true;
+                            updated = true;
                         }
                     }
-                });
-            });
-        } while (changed);
+                }
+            }
+        }
 
         return { alpha, beta };
     };
