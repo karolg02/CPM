@@ -364,14 +364,13 @@ export const Intermediary = () => {
         const numSuppliers = allocation.length;
         const numCustomers = allocation[0].length;
 
-        // 1. Znajdź najbardziej dodatnią zmienną kryterialną
         let maxDelta = 0;
         let enteringRow = -1;
         let enteringCol = -1;
 
         for (let i = 0; i < numSuppliers; i++) {
             for (let j = 0; j < numCustomers; j++) {
-                if (allocation[i][j] === 0) { // Tylko dla tras niebazowych
+                if (allocation[i][j] === 0) {
                     const delta = profits[i][j] - alpha[i] - beta[j];
                     if (delta > maxDelta) {
                         maxDelta = delta;
@@ -386,16 +385,13 @@ export const Intermediary = () => {
             return solution;
         }
 
-        // 2. Znajdź pętlę dla wybranej zmiennej
         const loop = findLoop(allocation, enteringRow, enteringCol);
         if (!loop) {
             return solution;
         }
 
-        // 3. Przeprowadź realokację
         const newAllocation = reallocateAlongLoop(allocation, loop);
 
-        // 4. Zaktualizuj rozwiązanie
         const newSolution: TransportSolution = {
             ...solution,
             allocation: newAllocation
@@ -404,17 +400,12 @@ export const Intermediary = () => {
         return newSolution;
     };
 
-    // Funkcja pomocnicza do znajdowania pętli
     const findLoop = (allocation: number[][], startRow: number, startCol: number) => {
-        const numRows = allocation.length;
-        const numCols = allocation[0].length;
         const loop = [{ row: startRow, col: startCol }];
-
-        // Przykład uproszczony - szukamy wiersza i kolumny z komórkami bazowymi
-        for (let i = 0; i < numRows; i++) {
+        for (let i = 0; i < allocation.length; i++) {
             if (i !== startRow && allocation[i][startCol] > 0) {
                 loop.push({ row: i, col: startCol });
-                for (let j = 0; j < numCols; j++) {
+                for (let j = 0; j < allocation[0].length; j++) {
                     if (j !== startCol && allocation[i][j] > 0) {
                         loop.push({ row: i, col: j });
                         if (allocation[startRow][j] > 0) {
@@ -425,31 +416,25 @@ export const Intermediary = () => {
                 }
             }
         }
-
         return null;
     };
 
-    // Funkcja pomocnicza do realokacji wzdłuż pętli
+
     const reallocateAlongLoop = (allocation: number[][], loop: { row: number, col: number }[]) => {
         const newAllocation = allocation.map(row => [...row]);
-
-        // Znajdź minimalną wartość w komórkach, z których odejmujemy
         let minAmount = Infinity;
-        for (let i = 1; i < loop.length; i += 2) { // Komórki, z których odejmujemy
+        for (let i = 1; i < loop.length; i += 2) {
             const { row, col } = loop[i];
             minAmount = Math.min(minAmount, newAllocation[row][col]);
         }
-
-        // Przeprowadź realokację
         for (let i = 0; i < loop.length; i++) {
             const { row, col } = loop[i];
-            if (i % 2 === 0) { // Komórki, do których dodajemy
+            if (i % 2 === 0) {
                 newAllocation[row][col] += minAmount;
-            } else { // Komórki, z których odejmujemy
+            } else {
                 newAllocation[row][col] -= minAmount;
             }
         }
-
         return newAllocation;
     };
 
@@ -626,7 +611,6 @@ export const Intermediary = () => {
     return (
         <Container fluid p="md">
             <Group align="flex-start" gap="md">
-                {/* Główna zawartość */}
                 <div style={{ flex: 1 }}>
                     <Table bg="var(--color-odd)" striped="even" stripedColor="var(--color-even)">
                         <Table.Thead>
@@ -761,7 +745,6 @@ export const Intermediary = () => {
                         </Table.Tbody>
                     </Table>
 
-                    {/* Sekcja wyników */}
                     {results.totalProfit !== undefined && (
                         <>
                             <Title order={4} mt="xl" mb="md">Wyniki</Title>
