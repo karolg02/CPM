@@ -1,23 +1,18 @@
 import {
     Button,
-    Card,
     Container,
     Table,
     TextInput,
-    ActionIcon,
     Group,
     Title,
     NumberInput,
-    Paper,
     Text,
-    SimpleGrid,
     Center,
 } from "@mantine/core";
 import {
-    IconTrash,
-    IconDeviceFloppy,
     IconArrowBackUp,
-    IconPlus
+    IconPlus,
+    IconCheck
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -311,43 +306,37 @@ export const Intermediary = () => {
     };
 
     const solveTransportProblem = () => {
-        const validatedData = validateModel(data);
 
-        // Sprawdź czy są jakieś błędy
-        const hasErrors =
-            validatedData.suppliers.some(s => s.errors) ||
-            validatedData.customers.some(c => c.errors) ||
-            validatedData.errors;
 
-        if (hasErrors) {
-            setData(validatedData);
-            return;
+        const calData = proccesDataForCalculating(data);
+        const profitGrid = calculateProfitGrid(calData.transportCostsMatrix, calData.purchaseCosts, calData.sellingPrices);
+
+
+        let totalBuyerDemand = 0;
+        for (let i = 0; i < calData.demand.length; i++) {
+            totalBuyerDemand += calData.demand[i];
+        }
+        let totalProducerSupply = 0;
+        for (let i = 0; i < calData.supply.length; i++) {
+            totalProducerSupply += calData.supply[i];
+        }
+        if (totalBuyerDemand !== totalProducerSupply) {
+            calData.demand.push(totalProducerSupply);
+            calData.supply.push(totalBuyerDemand);
+            const extraRow = Array(profitGrid[0].length).fill(0);
+            profitGrid.push(extraRow);
+            for (const row of profitGrid) {
+                row.push(0);
+            }
         }
 
-        const result = proccesDataForCalculating(validatedData);
-        const unitProfitMatrix = unitProfitCalculator(result.transportCostsMatrix, result.purchaseCosts, result.sellingPrices);
-
-        const totalDemand = result.demand.reduce((sum, current) => sum + current, 0);
-        const totalSupply = result.supply.reduce((sum, current) => sum + current, 0);
-
-        if (totalDemand !== totalSupply) {
-            result.demand.push(totalSupply);
-            result.supply.push(totalDemand);
-
-            const newSupplierRow = [0, 0, 0];
-            unitProfitMatrix.push(newSupplierRow);
-            unitProfitMatrix.forEach(row => {
-                row.push(0); // Dodajemy 0 do każdego wiersza
-            });
-        }
-
-        const potentialPath = calculatePotentialPath(unitProfitMatrix, result.supply, result.demand);
+        const potentialPath = calculatePotentialPath(profitGrid, calData.supply, calData.demand);
 
         const solution: TransportSolution = {
             allocation: potentialPath,
-            profits: unitProfitMatrix,
-            supply: result.supply,
-            demand: result.demand,
+            profits: profitGrid,
+            supply: calData.supply,
+            demand: calData.demand,
         }
 
         let currentSolution = solution;
@@ -367,12 +356,12 @@ export const Intermediary = () => {
         }
 
         const newResults: SolutionResults = {
-            totalProfit: calculateTotalProfit(unitProfitMatrix, currentSolution.allocation),
-            transportCosts: calculateTransportCosts(result.transportCostsMatrix, currentSolution.allocation, unitProfitMatrix),
-            purchaseCosts: calculatePurchaseCosts(result.purchaseCosts, currentSolution.allocation, unitProfitMatrix),
-            income: calculateIncome(result.sellingPrices, currentSolution.allocation, unitProfitMatrix),
+            totalProfit: calculateTotalProfit(profitGrid, currentSolution.allocation),
+            transportCosts: calculateTransportCosts(calData.transportCostsMatrix, currentSolution.allocation, profitGrid),
+            purchaseCosts: calculatePurchaseCosts(calData.purchaseCosts, currentSolution.allocation, profitGrid),
+            income: calculateIncome(calData.sellingPrices, currentSolution.allocation, profitGrid),
             allocation: currentSolution.allocation,
-            unitProfitMatrix: unitProfitMatrix
+            unitProfitMatrix: profitGrid
         };
 
         setResults(newResults);
@@ -449,7 +438,7 @@ export const Intermediary = () => {
     };
 
     // Funkcja pomocnicza do realokacji wzdłuż pętli
-    const reallocateAlongLoop = (allocation: number[][], loop: {row: number, col: number}[]) => {
+    const reallocateAlongLoop = (allocation: number[][], loop: { row: number, col: number }[]) => {
         const newAllocation = allocation.map(row => [...row]);
 
         // Znajdź minimalną wartość w komórkach, z których odejmujemy
@@ -574,7 +563,7 @@ export const Intermediary = () => {
     const calculatePotentialPath = (unitProfitMatrix: number[][], supply: number[], demand: number[]) => {
         const remainingSupply = [...supply];
         const remainingDemand = [...demand];
-        const allocation: number[][] = Array.from({length: supply.length}, () =>
+        const allocation: number[][] = Array.from({ length: supply.length }, () =>
             new Array(demand.length).fill(0)
         );
 
@@ -593,11 +582,11 @@ export const Intermediary = () => {
                 }
             }
 
-            return {row, col};
+            return { row, col };
         }
 
         while (true) {
-            const {row, col} = findMaxProfit();
+            const { row, col } = findMaxProfit();
             if (row === -1 || col === -1) break;
             const amount = Math.min(remainingSupply[row], remainingDemand[col]);
             allocation[row][col] = amount;
@@ -608,16 +597,17 @@ export const Intermediary = () => {
         return allocation;
     };
 
-    const unitProfitCalculator = (transportCostsMatrix: number[][], purchaseCosts: number[], sellingPrices: number[]) => {
-        const unitProfitMatrix: number[][] = transportCostsMatrix.map(row =>
-            new Array(row.length).fill(0)
-        );
-        for (let i = 0; i < transportCostsMatrix.length; i++) {
-            for (let j = 0; j < transportCostsMatrix[i].length; j++) {
-                unitProfitMatrix[i][j] = sellingPrices[j] - purchaseCosts[i] - transportCostsMatrix[i][j];
+    const calculateProfitGrid = (shippingCosts: number[][], supplierPrices: number[], customerPrices: number[]) => {
+        const profitGrid: number[][] = [];
+        for (let supplier = 0; supplier < shippingCosts.length; supplier++) {
+            const row: number[] = [];
+            for (let client = 0; client < shippingCosts[supplier].length; client++) {
+                const profit = customerPrices[client] - supplierPrices[supplier] - shippingCosts[supplier][client];
+                row.push(profit);
             }
+            profitGrid.push(row);
         }
-        return unitProfitMatrix;
+        return profitGrid;
     };
 
     const proccesDataForCalculating = (data: TransportProblemData) => {
@@ -651,93 +641,95 @@ export const Intermediary = () => {
             <Group align="flex-start" gap="md">
                 {/* Główna zawartość */}
                 <div style={{ flex: 1 }}>
-                    <Card shadow="md" p="lg" radius="md" withBorder>
-                        <Table striped highlightOnHover withTableBorder withColumnBorders>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Dostawcy \ Odbiorcy</Table.Th>
-                                    {data.customers.map((customer, index) => (
-                                        <Table.Th key={index}>
-                                            <Group gap="xs" align="flex-end">
-                                                <TextInput
-                                                    value={customer.name}
-                                                    onChange={(e) => updateCustomer(index, 'name', e.target.value)}
-                                                    variant="unstyled"
-                                                    size="xs"
-                                                    error={customer.errors?.name}
-                                                />
-                                                {data.customers.length > 1 && (
-                                                    <ActionIcon color="red" size="sm" onClick={() => removeCustomer(customer.name)}>
-                                                        <IconTrash size={14} />
-                                                    </ActionIcon>
-                                                )}
-                                            </Group>
-                                            <NumberInput
-                                                label="Popyt"
-                                                value={customer.demand}
-                                                onChange={(value) => updateCustomer(index, 'demand', Number(value))}
-                                                min={0}
-                                                size="xs"
-                                                error={customer.errors?.demand}
+                    <Table bg="var(--color-odd)" striped="even" stripedColor="var(--color-even)">
+                        <Table.Thead>
+                            <Table.Tr bg="var(--primary-color)">
+                                <Table.Th><Center><Text size="23px" fw="bold">Dostawcy / Odbiorcy</Text></Center></Table.Th>
+                                {data.customers.map((customer, index) => (
+                                    <Table.Th key={index}>
+                                        <Group gap="xs" align="flex-end">
+                                            <TextInput
+                                                value={customer.name}
+                                                onChange={(e) => updateCustomer(index, 'name', e.target.value)}
+                                                variant="unstyled"
+                                                size="lg"
+                                                error={customer.errors?.name}
                                             />
-                                            <NumberInput
-                                                label="Cena sprzedaży"
-                                                value={customer.sellingPrice}
-                                                onChange={(value) => updateCustomer(index, 'sellingPrice', Number(value))}
-                                                min={0}
-                                                size="xs"
-                                                error={customer.errors?.sellingPrice}
-                                            />
-                                        </Table.Th>
-                                    ))}
-                                    <Table.Th
-                                        onClick={addCustomer}
-                                        className="add-customer-th"
-                                        >
-                                        <Center>
-                                            <IconPlus color="blue" />
-                                        </Center>
+                                        </Group>
+                                        <NumberInput
+                                            label="Popyt"
+                                            value={customer.demand}
+                                            onChange={(value) => updateCustomer(index, 'demand', Number(value))}
+                                            min={0}
+                                            size="xs"
+                                            error={customer.errors?.demand}
+                                        />
+                                        <NumberInput
+                                            label="Cena sprzedaży"
+                                            value={customer.sellingPrice}
+                                            onChange={(value) => updateCustomer(index, 'sellingPrice', Number(value))}
+                                            min={0}
+                                            size="xs"
+                                            error={customer.errors?.sellingPrice}
+                                        />
+                                        {data.customers.length > 1 && (
+                                            <Button color="var(--delete-color)" mt="lg" onClick={() => removeCustomer(customer.name)}>
+                                                Usuń
+                                            </Button>
+                                        )}
                                     </Table.Th>
+                                ))}
+                                <Table.Th
+                                    bd="1px solid"
+                                    onClick={addCustomer}
+                                    className="add-customer-th"
+                                >
+                                    <Center>
+                                        <IconPlus color="black" />
+                                    </Center>
+                                </Table.Th>
 
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {data.suppliers.map((supplier) => (
-                                    <Table.Tr key={supplier.id}>
-                                        <Table.Td>
-                                            <Group gap="xs">
-                                                <TextInput
-                                                    value={supplier.name}
-                                                    onChange={(e) => updateSupplier(supplier.id, 'name', e.target.value)}
-                                                    variant="unstyled"
-                                                    size="xs"
-                                                    error={supplier.errors?.name}
-                                                />
-                                                {data.suppliers.length > 1 && (
-                                                    <ActionIcon color="red" size="sm" onClick={() => removeSupplier(supplier.id)}>
-                                                        <IconTrash size={14} />
-                                                    </ActionIcon>
-                                                )}
-                                            </Group>
-                                            <NumberInput
-                                                label="Podaż"
-                                                value={supplier.supply}
-                                                onChange={(value) => updateSupplier(supplier.id, 'supply', Number(value))}
-                                                min={0}
-                                                size="xs"
-                                                error={supplier.errors?.supply}
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {data.suppliers.map((supplier) => (
+                                <Table.Tr key={supplier.id}>
+                                    <Table.Td bg="var(--primary-color)">
+                                        <Group gap="xs">
+                                            <TextInput
+                                                value={supplier.name}
+                                                onChange={(e) => updateSupplier(supplier.id, 'name', e.target.value)}
+                                                variant="unstyled"
+                                                size="lg"
+                                                fw="bold"
+                                                error={supplier.errors?.name}
                                             />
-                                            <NumberInput
-                                                label="Cena kupna"
-                                                value={supplier.purchasePrice}
-                                                onChange={(value) => updateSupplier(supplier.id, 'purchasePrice', Number(value))}
-                                                min={0}
-                                                size="xs"
-                                                error={supplier.errors?.purchasePrice}
-                                            />
-                                        </Table.Td>
-                                        {data.customers.map((customer) => (
-                                            <Table.Td key={customer.name}>
+                                        </Group>
+                                        <NumberInput
+                                            label="Podaż"
+                                            value={supplier.supply}
+                                            onChange={(value) => updateSupplier(supplier.id, 'supply', Number(value))}
+                                            min={0}
+                                            size="xs"
+                                            error={supplier.errors?.supply}
+                                        />
+                                        <NumberInput
+                                            label="Cena kupna"
+                                            value={supplier.purchasePrice}
+                                            onChange={(value) => updateSupplier(supplier.id, 'purchasePrice', Number(value))}
+                                            min={0}
+                                            size="xs"
+                                            error={supplier.errors?.purchasePrice}
+                                        />
+                                        {data.suppliers.length > 1 && (
+                                            <Button mt="lg" color="var(--delete-color)" onClick={() => removeSupplier(supplier.id)}>
+                                                Usun
+                                            </Button>
+                                        )}
+                                    </Table.Td>
+                                    {data.customers.map((customer) => (
+                                        <Table.Td key={customer.name}>
+                                            <Center>
                                                 <NumberInput
                                                     value={supplier.transportCosts[customer.name] || 0}
                                                     onChange={(value) => updateTransportCost(supplier.id, customer.name, Number(value))}
@@ -745,55 +737,70 @@ export const Intermediary = () => {
                                                     hideControls
                                                     variant="unstyled"
                                                     error={supplier.errors?.transportCosts?.[customer.name]}
+                                                    styles={{
+                                                        input: {
+                                                            textAlign: 'center',
+                                                        },
+                                                    }}
+                                                    size="xl"
                                                 />
-                                            </Table.Td>
-                                        ))}
-                                        
-                                    </Table.Tr>
-                                    
-                                ))}
-                                <Table.Tr 
-                                    onClick={addSupplier}
-                                    className="add-customer-th"
-                                    h="100px"
-                                    style={{display: "grid"}}
-                                >
-                                
-                                        <Center>
-                                            <IconPlus color="blue" />
-                                        </Center>
+                                            </Center>
+                                        </Table.Td>
+                                    ))}
+
                                 </Table.Tr>
 
-                            </Table.Tbody>
-                        </Table>
-                    </Card>
+                            ))}
+                            <Table.Tr
+                                onClick={addSupplier}
+                                className="add-customer-th"
+                                h="100px"
+                                style={{
+                                    display: "grid",
+                                    borderLeft: "1px solid",
+                                    borderRight: "1px solid",
+                                    borderBottom: "1px solid",
+                                    /*ujemny margin wchodzi jak zloto przez obrecz*/
+                                    marginLeft: "-1px",
+                                    marginRight: "-1px"
+                                }}
+                            >
+
+                                <Center>
+                                    <IconPlus color="black" />
+                                </Center>
+                            </Table.Tr>
+
+                        </Table.Tbody>
+                    </Table>
 
                     {/* Sekcja wyników */}
                     {results.totalProfit !== undefined && (
-                        <Card shadow="md" p="lg" radius="md" withBorder mt="md">
-                            <Title order={4} mb="md">Wyniki</Title>
-                            <SimpleGrid cols={4}>
-                                <Paper p="md" shadow="xs">
-                                    <Text fw={500}>Całkowity zysk</Text>
-                                    <Text>{results.totalProfit.toFixed(2)} zł</Text>
-                                </Paper>
-                                <Paper p="md" shadow="xs">
-                                    <Text fw={500}>Koszty transportu</Text>
-                                    <Text>{results.transportCosts?.toFixed(2)} zł</Text>
-                                </Paper>
-                                <Paper p="md" shadow="xs">
-                                    <Text fw={500}>Koszty zakupu</Text>
-                                    <Text>{results.purchaseCosts?.toFixed(2)} zł</Text>
-                                </Paper>
-                                <Paper p="md" shadow="xs">
-                                    <Text fw={500}>Przychód</Text>
-                                    <Text>{results.income?.toFixed(2)} zł</Text>
-                                </Paper>
-                            </SimpleGrid>
+                        <>
+                            <Title order={4} mt="xl" mb="md">Wyniki</Title>
+                            <Table>
+                                <Table.Thead bg="var(--primary-color)">
+                                    <Table.Tr>
+                                        <Table.Th>Całkowity zysk</Table.Th>
+                                        <Table.Th>Koszty transportu</Table.Th>
+                                        <Table.Th>Koszty zakupu</Table.Th>
+                                        <Table.Th>Przychód</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    <Table.Tr>
+                                        <Table.Td>{results.totalProfit.toFixed(2)} zł</Table.Td>
+                                        <Table.Td>{results.transportCosts?.toFixed(2)} zł</Table.Td>
+                                        <Table.Td>{results.purchaseCosts?.toFixed(2)} zł</Table.Td>
+                                        <Table.Td>{results.income?.toFixed(2)} zł</Table.Td>
+                                    </Table.Tr>
+                                </Table.Tbody>
+                            </Table>
+
 
                             {/* Tabela alokacji (pomniejszona o ostatni wiersz i kolumnę) */}
                             <Title order={5} mt="xl" mb="sm">Optymalny plan przewozów</Title>
-                            <Table striped highlightOnHover withTableBorder withColumnBorders mb="xl">
+                            <Table bg="var(--primary-color)" striped highlightOnHover withTableBorder withColumnBorders mb="xl">
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Dostawca \ Odbiorca</Table.Th>
@@ -805,7 +812,7 @@ export const Intermediary = () => {
                                 <Table.Tbody>
                                     {results.allocation?.slice(0, -1).map((row, i) => (
                                         <Table.Tr key={i}>
-                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i+1}`}</Table.Td>
+                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i + 1}`}</Table.Td>
                                             {row.slice(0, -1).map((cell, j) => (
                                                 <Table.Td key={j}>{cell}</Table.Td>
                                             ))}
@@ -816,7 +823,7 @@ export const Intermediary = () => {
 
                             {/* Tabela zysków jednostkowych (pomniejszona o ostatni wiersz i kolumnę) */}
                             <Title order={5} mt="xl" mb="sm">Tabela zysków jednostkowych</Title>
-                            <Table striped highlightOnHover withTableBorder withColumnBorders>
+                            <Table mb="xl" bg="var(--primary-color)" striped highlightOnHover withTableBorder withColumnBorders>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Dostawca \ Odbiorca</Table.Th>
@@ -828,7 +835,7 @@ export const Intermediary = () => {
                                 <Table.Tbody>
                                     {results.unitProfitMatrix?.slice(0, -1).map((row, i) => (
                                         <Table.Tr key={i}>
-                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i+1}`}</Table.Td>
+                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i + 1}`}</Table.Td>
                                             {row.slice(0, -1).map((cell, j) => (
                                                 <Table.Td key={j}>{cell.toFixed(2)}</Table.Td>
                                             ))}
@@ -836,24 +843,26 @@ export const Intermediary = () => {
                                     ))}
                                 </Table.Tbody>
                             </Table>
-                        </Card>
+
+                        </>
                     )}
                 </div>
             </Group>
-            <Button pos="fixed" bottom="10px" left="10px" onClick={() => navigate("/")}
+            <Button bg="var(--delete-color)" pos="fixed" bottom="10px" left="10px" onClick={() => navigate("/")}
             >
-                <IconArrowBackUp/>
+                <IconArrowBackUp />
             </Button>
             <Button
+                bg="var(--delete-color)"
                 pos="fixed" bottom="10px" right="10px"
-                leftSection={<IconDeviceFloppy size={18} />}
+                leftSection={<IconCheck size={18} />}
                 onClick={solveTransportProblem}
                 disabled={
                     data.suppliers.some(s => s.errors) ||
                     data.customers.some(c => c.errors) ||
                     data.errors !== undefined
                 }
-                >
+            >
                 Rozwiąż
             </Button>
         </Container>
