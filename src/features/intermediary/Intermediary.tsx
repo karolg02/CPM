@@ -522,19 +522,15 @@ export const Intermediary = () => {
         const { allocation, profits } = solution;
         const rows = allocation.length;
         const cols = allocation[0].length;
+        const alpha = []
+        const beta = []
 
-        const alpha = Array(rows).fill(null);
-        const beta = Array(cols).fill(null);
-
-        // Fikcyjny dostawca i odbiorca dostają 0
         alpha[rows - 1] = 0;
         beta[cols - 1] = 0;
 
         let updated = true;
-
         while (updated) {
             updated = false;
-
             for (let i = 0; i < rows; i++) {
                 for (let j = 0; j < cols; j++) {
                     if (allocation[i][j] > 0) {
