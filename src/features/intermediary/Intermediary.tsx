@@ -768,7 +768,7 @@ export const Intermediary = () => {
                             </Table>
 
                             <Title order={5} mt="xl" mb="sm">Tabela zysków jednostkowych</Title>
-                            <Table mb="xl" bg="var(--primary-color)" striped highlightOnHover withTableBorder withColumnBorders>
+                            <Table mb="xl" bg="var(--primary-color)" striped  withTableBorder withColumnBorders>
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Dostawca \ Odbiorca</Table.Th>
@@ -790,7 +790,7 @@ export const Intermediary = () => {
                             </Table>
                             
                             <Title order={5} mt="xl" mb="sm">Optymalny plan przewozów</Title>
-                            <Table bg="var(--primary-color)" striped highlightOnHover withTableBorder withColumnBorders mb="xl">
+                            <Table bg="var(--primary-color)" striped  withTableBorder withColumnBorders mb="xl">
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Dostawca \ Odbiorca</Table.Th>
