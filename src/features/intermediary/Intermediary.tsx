@@ -767,31 +767,6 @@ export const Intermediary = () => {
                                 </Table.Tbody>
                             </Table>
 
-
-                            {/* Tabela alokacji (pomniejszona o ostatni wiersz i kolumnę) */}
-                            <Title order={5} mt="xl" mb="sm">Optymalny plan przewozów</Title>
-                            <Table bg="var(--primary-color)" striped highlightOnHover withTableBorder withColumnBorders mb="xl">
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>Dostawca \ Odbiorca</Table.Th>
-                                        {data.customers.map((customer, idx) => (
-                                            <Table.Th key={idx}>{customer.name}</Table.Th>
-                                        ))}
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {results.allocation?.slice(0, -1).map((row, i) => (
-                                        <Table.Tr key={i}>
-                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i + 1}`}</Table.Td>
-                                            {row.slice(0, -1).map((cell, j) => (
-                                                <Table.Td key={j}>{cell}</Table.Td>
-                                            ))}
-                                        </Table.Tr>
-                                    ))}
-                                </Table.Tbody>
-                            </Table>
-
-                            {/* Tabela zysków jednostkowych (pomniejszona o ostatni wiersz i kolumnę) */}
                             <Title order={5} mt="xl" mb="sm">Tabela zysków jednostkowych</Title>
                             <Table mb="xl" bg="var(--primary-color)" striped highlightOnHover withTableBorder withColumnBorders>
                                 <Table.Thead>
@@ -813,7 +788,28 @@ export const Intermediary = () => {
                                     ))}
                                 </Table.Tbody>
                             </Table>
-
+                            
+                            <Title order={5} mt="xl" mb="sm">Optymalny plan przewozów</Title>
+                            <Table bg="var(--primary-color)" striped highlightOnHover withTableBorder withColumnBorders mb="xl">
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Dostawca \ Odbiorca</Table.Th>
+                                        {data.customers.map((customer, idx) => (
+                                            <Table.Th key={idx}>{customer.name}</Table.Th>
+                                        ))}
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {results.allocation?.slice(0, -1).map((row, i) => (
+                                        <Table.Tr key={i}>
+                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i + 1}`}</Table.Td>
+                                            {row.slice(0, -1).map((cell, j) => (
+                                                <Table.Td key={j}>{cell}</Table.Td>
+                                            ))}
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
                         </>
                     )}
                 </div>
